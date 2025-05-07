@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllRoles, createRole, createUser, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, createShow, getAllShow, createBooking } = require("../controller/movieController");
+const { getAllRoles, createRole, createUser, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, createShow, getAllShow, createBooking, updateTheater, deleteTheater, updateBooking, cancelBooking, getAllBooking, updateShow, deleteShow } = require("../controller/movieController");
 const { auth, isAdmin, isUser } = require("../middleware/tokenMiddleware");
 const upload = require("../middleware/multer");
 const route = express.Router();
@@ -17,11 +17,18 @@ route.put("/update/:id", auth, isAdmin, updateMovie)
 route.delete("/delete/:id", auth, isAdmin, deleteMovie)
 
 route.get("/get/all/theater", auth, getAllTheater)
-route.post("/create/theater", auth, isAdmin, createTheater)
+route.post("/theater/create", auth, isAdmin, createTheater)
+route.put("/theater/update/:id", auth, isAdmin, updateTheater)
+route.delete("/theater/delete/:id", auth, isAdmin, deleteTheater)
 
 route.get("/get/all/show", auth, getAllShow)
 route.post("/create/show", auth, isAdmin, createShow)
+route.put("/show/update/:id", auth, isAdmin, updateShow)
+route.delete("/show/delete/:id", auth, isAdmin, deleteShow)
 
+route.get("/booking/get/all", auth, isAdmin, getAllBooking)
 route.post("/create/booking", auth, isUser, createBooking)
+route.put("/booking/update/:bookingId", auth, isUser, updateBooking)
+route.delete("/booking/delete/:bookingId", auth, isUser, cancelBooking)
 
 module.exports = route;

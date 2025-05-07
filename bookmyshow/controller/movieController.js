@@ -8,6 +8,8 @@ const sendMail = require("../utils/mail");
 const Theater = require("../models/theaterModel");
 const Show = require("../models/showModel");
 const Booking = require("../models/bookingModel");
+const path = require("path");
+const fs = require("fs")
 
 
 const createMovie = async (req, res) => {
@@ -23,10 +25,11 @@ const createMovie = async (req, res) => {
             return res.status(400).json({ success: false, message: "movie already exist" })
         }
 
+        const movieImage = req.file ? req.file.path : '';
         const newMovie = new Movie({
             movieName,
             language,
-            movieImage: req.file.path || '',
+            movieImage,
             createdBy: req.user.id
         })
         // console.log(newMovie);
@@ -93,14 +96,33 @@ const movieById = async (req, res) => {
 
 const updateMovie = async (req, res) => {
     try {
-        const { movieName, language } = req.body;
-        const updateMovie = await Movie.findByIdAndUpdate(req.params.id, { movieName, language })
+        // const movieId = req.params;
+        const { movieName, language } = req.body || {};
+
+        const updateMovie = await Movie.findById(req.params.id)
         if (!updateMovie) {
-            res.status(400).json({ success: false, message: "movie not found" })
+            return res.status(400).json({ success: false, message: "movie not found" })
         }
+
+
+        if (movieName) updateMovie.movieName = movieName;
+        if (language) updateMovie.language = language;
+
+        if (req.file) {
+            if (updateMovie.movieImage) {
+                const oldPath = path.join(__dirname, '../uploads', updateMovie.movieImage)
+                if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+            }
+            updateMovie.movieImage = req.file.path;
+        }
+
+        await updateMovie.save()
+
         res.status(200).json({ success: true, message: "movie updated successfully" })
 
     } catch (error) {
+        console.log(error);
+
         return res.status(500).json({ success: false, message: "server error" })
     }
 }
@@ -313,12 +335,67 @@ const createTheater = async (req, res) => {
 
 const getAllTheater = async (req, res) => {
     try {
-        const theater = await Theater.find().select("-__v")
-        res.status(200).json({ success: true, message: theater })
+        let { page, limit, sortBy, theaters, search } = req.query;
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 3;
+        sortBy = sortBy || 'createdAt';
+        theaters = theaters === 'desc' ? -1 : 1;
+
+        const skip = (page - 1) * limit;
+        const query = { isDeleted: false };
+
+        // Search Filter 
+        if (search) {
+            const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedSearch, "i");
+            query.$or = [
+                { location: regex },
+                { theatreName: regex },
+            ];
+        }
+        const theater = await Theater.find().select("-__v -isDeleted -updatedAt")
+            .sort({ _id: 1 })
+            .skip(skip)
+            .limit(limit)
+
+        const total = await Theater.countDocuments(query)
+        res.status(200).json({ success: true, totalTheater: total, theater })
     } catch (error) {
         console.log(error);
 
         res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+const updateTheater = async (req, res) => {
+    try {
+        const { theatreName, location, totalSeats } = req.body;
+        const updateTheater = await Theater.findByIdAndUpdate(req.params.id, { theatreName, location, totalSeats })
+        if (!updateTheater) {
+            res.status(400).json({ success: false, message: "theater not found" })
+        }
+        res.status(200).json({ success: true, message: "movie updated successfully" })
+
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+const deleteTheater = async (req, res) => {
+    try {
+        await Theater.updateOne(
+            {
+                _id: req.params.id
+            },
+            {
+                isDeleted: true,
+                deletedBy: req.user._id,
+                deletedAt: new Date()
+            }
+        )
+        res.status(200).json({ success: true, message: "theater delete successfully" })
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "server error" })
     }
 }
 
@@ -345,13 +422,6 @@ const createShow = async (req, res) => {
         }
 
         const seats = seatGenerate()
-        console.log(seats);
-
-        // const showExist = await Show.findOne({ showTime })
-        // if (showExist) {
-        //     return res.status(400).json({ success: false, message: "show already exist" })
-        // }
-
 
         const movie = await Movie.findById(movieId)
         if (!movie) {
@@ -384,26 +454,83 @@ const createShow = async (req, res) => {
     }
 }
 
+const updateShow = async (req, res) => {
+
+    try {
+        const { showTime, price, screen } = req.body;
+        const show = await Show.findByIdAndUpdate(req.params.id, { showTime, price, screen })
+        if (!show) {
+            return res.status(400).json({ success: false, message: "show not found" })
+        }
+        return res.status(200).json({ success: true, message: "show updated successfully" })
+    } catch (error) {
+        res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+const deleteShow = async (req, res) => {
+    try {
+        await Show.updateOne(
+            {
+                _id: req.params.id
+            },
+            {
+                isDeleted: true,
+                deletedBy: req.user._id,
+                deletedAt: new Date()
+            }
+        )
+        res.status(200).json({ success: true, message: "theater delete successfully" })
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
 const getAllShow = async (req, res) => {
     try {
-        const show = await Show.find().select("-__v")
+        let { page, limit, sortBy, shows, search } = req.query;
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 3;
+        sortBy = sortBy || 'createdAt';
+        shows = shows === 'desc' ? -1 : 1;
+
+        const skip = (page - 1) * limit;
+        const query = { isDeleted: false };
+
+        // Search Filter 
+        if (search) {
+            const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedSearch, "i");
+            query.$or = [
+                { showTime: regex },
+            ];
+        }
+        const show = await Show.find().select("-__v -seats -updatedAt -isDeleted")
             .populate("movie theater", "theatreName movieName")
-        res.status(200).json({ success: true, message: show })
+            .sort({ _id: 1 })
+            .skip(skip)
+            .limit(limit)
+        if (!show) {
+            res.status(400).json({ success: false, message: "show not found" })
+        }
+        const total = await Show.countDocuments(query)
+        res.status(200).json({ success: true, totalShows: total, show })
     } catch (error) {
         res.status(500).json({ success: false, message: "server error" })
     }
 }
 
 const createBooking = async (req, res) => {
+    // console.log(req.body);
+
     try {
         const { showId, userId, selectSeats } = req.body;
 
-
-        const show = await Show.findById(showId);
+        const show = await Show.findById(showId)
         if (!show) {
             res.status(400).json({ success: false, message: "show not found" })
         }
-        console.log(showId);
+        // console.log(showId);
 
         const user = await User.findById(userId)
         if (!user) {
@@ -411,18 +538,40 @@ const createBooking = async (req, res) => {
 
         }
         // console.log(userId);
+        const userEmail = user.email
+        console.log(userEmail);
 
-        // const oldBookedSeat = selectSeats.filter(seatNumber =>
-        //     show.seats.find(s => s.seatNumber === seatNumber && s.isBooked)
-        // )
 
-        // if (oldBookedSeat.length > 0) {
-        //     res.status(400).json({success:false,message:"seat already booked"})
-        // }
+        const oldBookedSeats = selectSeats.filter(seatNumber =>
+            show.seats.find(s => s.seatNumber === seatNumber && s.isBooked)
+        )
+
+        if (oldBookedSeats.length > 0) {
+            return res.status(400).json({ success: false, message: `seats already book ${oldBookedSeats}` })
+        }
+
         // console.log(oldBookedSeat);
 
-      
+        const newBooking = new Booking({
+            seatsBooked: selectSeats,
+            numberOfSeats: selectSeats.length,
+            totalPrice: show.price * selectSeats.length,
+            show: showId,
+            user: userId
+        })
 
+        // console.log(newBooking);
+        await newBooking.save();
+
+        selectSeats.forEach(seatNumber => {
+            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            if (seat) {
+                seat.isBooked = true
+            }
+        })
+        await show.save();
+        await sendMail(userEmail, `your seat has been confirmed ${selectSeats} `)
+        res.status(201).json({ success: true, message: "your email sent to confirmation" })
 
     } catch (error) {
         console.log(error);
@@ -432,5 +581,121 @@ const createBooking = async (req, res) => {
 
 }
 
+const updateBooking = async (req, res) => {
+    try {
 
-module.exports = { createUser, createRole, getAllRoles, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, createShow, getAllShow, createBooking }
+        const { bookingId } = req.params
+        console.log(bookingId);
+
+        const { selectSeats } = req.body;
+
+        const booking = await Booking.findById(bookingId).populate("show")
+        if (!booking) {
+            return res.status(400).json({ success: false, message: "booking not found" })
+        }
+        const show = booking.show
+
+        const oldBookedSeats = selectSeats.filter(seatNumber =>
+            show.seats.find(s => s.seatNumber === seatNumber && s.isBooked)
+        )
+
+        if (oldBookedSeats.length > 0) {
+            return res.status(400).json({ success: false, message: `seat ${oldBookedSeats} already booked` })
+        }
+
+        booking.seatsBooked.forEach(seatNumber => {
+            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            if (seat) {
+                seat.isBooked = false;
+            }
+        })
+
+        selectSeats.forEach(seatNumber => {
+            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            if (seat) {
+                seat.isBooked = true;
+            }
+        })
+
+        booking.seatsBooked = selectSeats,
+            booking.numberOfSeats = selectSeats.length,
+            booking.totalPrice = show.price * selectSeats.length
+
+        await booking.save()
+        await show.save();
+
+        res.status(200).json({ success: true, message: "seats updated successfully" })
+
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+const cancelBooking = async (req, res) => {
+    try {
+        const { bookingId } = req.params
+
+        const booking = await Booking.findById(bookingId).populate("show")
+        if (!booking) {
+            return res.status(400).json({ success: false, message: "booking not found" });
+
+        }
+        const show = booking.show
+
+        booking.seatsBooked.forEach(seatNumber => {
+            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            if (seat) {
+                seat.isBooked = false;
+            }
+        })
+
+        await show.save();
+        await Booking.findByIdAndDelete(bookingId)
+
+        res.status(200).json({ success: true, message: "delete successfully" })
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "server error " })
+    }
+}
+
+const getAllBooking = async (req, res) => {
+    try {
+        let { page, limit, sortBy, bookings, search } = req.query;
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 3;
+        sortBy = sortBy || 'createdAt';
+        bookings = bookings === 'desc' ? -1 : 1;
+
+        const skip = (page - 1) * limit;
+        const query = {};
+
+        // Search Filter 
+        if (search) {
+            const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(escapedSearch, "i");
+            query.$or = [
+                { showTime: regex },
+                { seatsBooked: regex }
+            ];
+        }
+        const booking = await Booking.find().select("-__v").populate("user show", "email showTime")
+            .sort({ _id: 1 })
+            .skip(skip)
+            .limit(limit)
+
+        if (!booking) {
+            return res.status(400).json({ success: false, message: "booking not found" })
+        }
+        const total = await Booking.countDocuments()
+        res.status(200).json({ success: true, totalBooking: total, booking })
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+module.exports = { createUser, createRole, getAllRoles, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, updateTheater, deleteTheater, createShow, getAllShow, updateShow, deleteShow, createBooking, updateBooking, cancelBooking, getAllBooking }

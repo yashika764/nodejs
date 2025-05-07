@@ -14,12 +14,12 @@ const showSchema = new mongoose.Schema({
         required: true
     },
     seats: [{
-        seatNumber:{
-            type:String,
+        seatNumber: {
+            type: String,
         },
-        isBooked:{
-            type:Boolean,
-            default:false
+        isBooked: {
+            type: Boolean,
+            default: false
         }
     }],
     theater: {
@@ -29,9 +29,24 @@ const showSchema = new mongoose.Schema({
     movie: {
         type: mongoose.Schema.ObjectId,
         ref: "Movie"
+    },
+    createdBy: {
+        type: mongoose.Schema.ObjectId,
+        ref: "User"
+    },
+    deletedAt: {
+        type: Date
+    },
+    deletedBy: {
+        type: mongoose.Schema.ObjectId,
+        ref: "User"
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 
-})
+}, { timestamps: true })
 
 const Show = mongoose.model("Show", showSchema);
 module.exports = Show
