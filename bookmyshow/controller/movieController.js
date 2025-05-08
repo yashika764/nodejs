@@ -406,6 +406,7 @@ const deleteTheater = async (req, res) => {
 const createShow = async (req, res) => {
     try {
         const { showTime, price, movieId, theaterId, seatId, screenId } = req.body;
+        // const {screenId}=req.params
         if (!showTime || !price) {
             return res.status(400).json({ success: false, message: "all fields are required" })
         }
@@ -422,28 +423,28 @@ const createShow = async (req, res) => {
             return res.status(400).json({ success: false, message: "theater not found" })
 
         }
-        const seat = await Seats.findById(seatId)
-        if (!seat) {
-            return res.status(400).json({ success: false, message: "seat not found" })
-        }
+        // const seat = await Seats.findById(seatId)
+        // if (!seat) {
+        //     return res.status(400).json({ success: false, message: "seat not found" })
+        // }
 
         const screen = await Screen.findById(screenId);
-        if (!screen) {
-            return res.status(400).json({ success: false, message: "screen not found" })
+        // if (!screen) {
+        //     return res.status(400).json({ success: false, message: "screen not found" })
 
-        }
+        // }
 
         const newShow = new Show({
             showTime,
             price,
             movie: movieId,
             theater: theaterId,
-            screen:screenId
+            screen: screenId
         })
         // console.log(newShow);
 
         await newShow.save();
-        return res.status(200).json({ success: true, message: "show created successfully" })
+        return res.status(201).json({ success: true, message: "show created successfully" })
     } catch (error) {
         console.log(error);
 
@@ -455,8 +456,8 @@ const createShow = async (req, res) => {
 const updateShow = async (req, res) => {
 
     try {
-        const { showTime, price, screen } = req.body;
-        const show = await Show.findByIdAndUpdate(req.params.id, { showTime, price, screen })
+        const { showTime, price } = req.body;
+        const show = await Show.findByIdAndUpdate(req.params.id, { showTime, price, })
         if (!show) {
             return res.status(400).json({ success: false, message: "show not found" })
         }
@@ -514,6 +515,8 @@ const getAllShow = async (req, res) => {
         const total = await Show.countDocuments(query)
         res.status(200).json({ success: true, totalShows: total, show })
     } catch (error) {
+        console.log(error);
+        
         res.status(500).json({ success: false, message: "server error" })
     }
 }
@@ -753,7 +756,7 @@ const createSeat = async (req, res) => {
     try {
         const { totalRows, seatsPerRow } = req.body
 
-      await Screen.findById(req.params.id)
+        await Screen.findById(req.params.id)
         // console.log(screen);
 
         // if (!screen) {
@@ -776,9 +779,9 @@ const createSeat = async (req, res) => {
         }
         const newSeat = new Seats({
             seat: seatsInsert,
-            screen:req.params.id
-            
-        })        
+            screen: req.params.id
+
+        })
 
         await newSeat.save()
 
