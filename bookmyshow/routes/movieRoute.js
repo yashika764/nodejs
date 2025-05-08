@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllRoles, createRole, createUser, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, createShow, getAllShow, createBooking, updateTheater, deleteTheater, updateBooking, cancelBooking, getAllBooking, updateShow, deleteShow } = require("../controller/movieController");
+const { getAllRoles, createRole, createUser, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, createShow, getAllShow, createBooking, updateTheater, deleteTheater, updateBooking, cancelBooking, getAllBooking, updateShow, deleteShow, ScreenCreate, screenUpdate, createSeat } = require("../controller/movieController");
 const { auth, isAdmin, isUser } = require("../middleware/tokenMiddleware");
 const upload = require("../middleware/multer");
 const route = express.Router();
@@ -13,7 +13,7 @@ route.post("/user/login", loginUser)
 route.get("/get/all", auth, getAllMovie)
 route.get("/get/:id", auth, movieById)
 route.post("/create", auth, isAdmin, upload.single("movieImage"), createMovie)
-route.put("/update/:id", auth, isAdmin, updateMovie)
+route.put("/update/:id", auth, isAdmin, upload.single("movieImage"), updateMovie)
 route.delete("/delete/:id", auth, isAdmin, deleteMovie)
 
 route.get("/get/all/theater", auth, getAllTheater)
@@ -30,5 +30,10 @@ route.get("/booking/get/all", auth, isAdmin, getAllBooking)
 route.post("/create/booking", auth, isUser, createBooking)
 route.put("/booking/update/:bookingId", auth, isUser, updateBooking)
 route.delete("/booking/delete/:bookingId", auth, isUser, cancelBooking)
+
+route.post("/screen/create", auth, isAdmin, ScreenCreate)
+route.put("/screen/update/:id", auth, isAdmin, screenUpdate)
+
+route.post("/create/seat/:screenId", auth, isAdmin, createSeat)
 
 module.exports = route;

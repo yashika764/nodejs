@@ -9,10 +9,6 @@ const theaterSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    totalSeats: {
-        type: Number,
-        required: true
-    },
     createdBy: {
         type: mongoose.Schema.ObjectId,
         ref: "User"

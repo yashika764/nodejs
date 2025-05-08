@@ -1,12 +1,10 @@
 const mongoose = require("mongoose")
 
 const bookingSchema = new mongoose.Schema({
-    seatsBooked: [
-        {
-            type: String,
-            required: true
-        }
-    ],
+    seat:{
+        type:mongoose.Schema.ObjectId,
+        ref:'Seat'
+    },
     totalPrice: {
         type: Number,
     },

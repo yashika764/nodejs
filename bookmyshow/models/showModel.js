@@ -10,17 +10,12 @@ const showSchema = new mongoose.Schema({
         required: true
     },
     screen: {
-        type: Number,
-        required: true
+        type: mongoose.Schema.ObjectId,
+        ref: "Screen"
     },
-    seats: [{
-        seatNumber: {
-            type: String,
-        },
-        isBooked: {
-            type: Boolean,
-            default: false
-        }
+    seat:[{
+        type:mongoose.Schema.ObjectId,
+        ref:"Seat"
     }],
     theater: {
         type: mongoose.Schema.ObjectId,

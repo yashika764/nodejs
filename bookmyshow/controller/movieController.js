@@ -9,7 +9,9 @@ const Theater = require("../models/theaterModel");
 const Show = require("../models/showModel");
 const Booking = require("../models/bookingModel");
 const path = require("path");
-const fs = require("fs")
+const fs = require("fs");
+const Screen = require("../models/screenModel");
+const Seat = require("../models/seatsModel");
 
 
 const createMovie = async (req, res) => {
@@ -104,25 +106,26 @@ const updateMovie = async (req, res) => {
             return res.status(400).json({ success: false, message: "movie not found" })
         }
 
+        if (movieName) {
+            updateMovie.movieName = movieName
+        }
 
-        if (movieName) updateMovie.movieName = movieName;
-        if (language) updateMovie.language = language;
+        if (language) {
+            updateMovie.language = language;
+        }
 
         if (req.file) {
             if (updateMovie.movieImage) {
-                const oldPath = path.join(__dirname, '../uploads', updateMovie.movieImage)
+                const oldPath = path.join(__dirname, '..', 'uploads', updateMovie.movieImage)
                 if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
             }
             updateMovie.movieImage = req.file.path;
         }
-
         await updateMovie.save()
-
         res.status(200).json({ success: true, message: "movie updated successfully" })
 
     } catch (error) {
         console.log(error);
-
         return res.status(500).json({ success: false, message: "server error" })
     }
 }
@@ -397,21 +400,6 @@ const deleteTheater = async (req, res) => {
     } catch (error) {
         return res.status(500).json({ success: false, message: "server error" })
     }
-}
-
-function seatGenerate() {
-    let seats = [];
-    const rows = ["A", "B", "C", "D", "E"];
-    const seatsPerRow = 20;
-
-    rows.forEach(rows => {
-        for (let i = 0; i < seatsPerRow; i++) {
-            seats.push({ seatNumber: `${rows}${i}`, isBooked: false })
-        }
-    })
-
-    return seats;
-
 }
 
 const createShow = async (req, res) => {
@@ -698,4 +686,94 @@ const getAllBooking = async (req, res) => {
     }
 }
 
-module.exports = { createUser, createRole, getAllRoles, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, updateTheater, deleteTheater, createShow, getAllShow, updateShow, deleteShow, createBooking, updateBooking, cancelBooking, getAllBooking }
+const ScreenCreate = async (req, res) => {
+    try {
+        const { theaterId, screen } = req.body;
+        const theater = await Theater.findById(theaterId)
+        if (!theater) {
+            return res.status(400).json({ success: false, message: "theater not found" })
+        }
+
+        const newscreen = new Screen({
+            screen,
+            theater: theaterId
+        })
+
+        await newscreen.save();
+        return res.status(200).json({ success: true, message: "screen created successfully" })
+
+    } catch (error) {
+        // console.log(error);
+        res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+const screenUpdate = async (req, res) => {
+    try {
+        const { screen } = req.body
+        const updateScreen = await Screen.findByIdAndUpdate(req.params.id, { screen })
+        if (!updateScreen) {
+            return res.status(400).json({ success: false, message: "screen not found" })
+        }
+
+        await updateScreen.save();
+        return res.status(200).json({ success: true, message: "screen Updated successfully" })
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: "server error" })
+
+    }
+}
+
+function seatGenerate() {
+    let seats = [];
+    const rows = ["A", "B", "C", "D", "E"];
+    const seatsPerRow = 20;
+
+    rows.forEach(rows => {
+        for (let i = 0; i < seatsPerRow; i++) {
+            seats.push({ seatNumber: `${rows}${i}`, isBooked: false })
+        }
+    })
+
+    return seats;
+}
+
+function seatCreate() {
+    const seatsInsert = [];
+    const rowLetter = (index) => {
+        return String.fromCharCode(65 + index);
+    };
+
+    return seatsInsert
+}
+
+const createSeat = async (req, res) => {
+    try {
+        const { screenId } = req.params
+        // const { seatNumber } = req.body;
+
+        const seat = seatCreate()
+
+        const screen = await Screen.findById(screenId)
+        if (!screen) {
+            return res.status(400).json({ success: false, message: "screen not found" })
+        }
+
+        const newSeat = new Seat({
+            seat,
+            seatNumber
+        })
+
+        await newSeat.save();
+        res.status(200).json({ success: true, message: "seatCreate" })
+
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({ success: false, message: "server error" })
+    }
+}
+
+module.exports = { createUser, createRole, getAllRoles, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, updateTheater, deleteTheater, createShow, getAllShow, updateShow, deleteShow, createBooking, updateBooking, cancelBooking, getAllBooking, ScreenCreate, screenUpdate, createSeat }
