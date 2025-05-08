@@ -11,7 +11,8 @@ const Booking = require("../models/bookingModel");
 const path = require("path");
 const fs = require("fs");
 const Screen = require("../models/screenModel");
-const Seat = require("../models/seatsModel");
+const Seats = require("../models/seatsModel");
+
 
 
 const createMovie = async (req, res) => {
@@ -404,12 +405,12 @@ const deleteTheater = async (req, res) => {
 
 const createShow = async (req, res) => {
     try {
-        const { showTime, price, screen, movieId, theaterId } = req.body;
-        if (!showTime || !price || !screen) {
+        const { showTime, price, movieId, theaterId, seatId, screenId } = req.body;
+        if (!showTime || !price) {
             return res.status(400).json({ success: false, message: "all fields are required" })
         }
 
-        const seats = seatGenerate()
+        // const seats = seatGenerate()
 
         const movie = await Movie.findById(movieId)
         if (!movie) {
@@ -421,14 +422,23 @@ const createShow = async (req, res) => {
             return res.status(400).json({ success: false, message: "theater not found" })
 
         }
+        const seat = await Seats.findById(seatId)
+        if (!seat) {
+            return res.status(400).json({ success: false, message: "seat not found" })
+        }
+
+        const screen = await Screen.findById(screenId);
+        if (!screen) {
+            return res.status(400).json({ success: false, message: "screen not found" })
+
+        }
 
         const newShow = new Show({
             showTime,
             price,
-            screen,
-            seats,
             movie: movieId,
-            theater: theaterId
+            theater: theaterId,
+            screen:screenId
         })
         // console.log(newShow);
 
@@ -739,39 +749,42 @@ function seatGenerate() {
     return seats;
 }
 
-function seatCreate() {
-    const seatsInsert = [];
-    const rowLetter = (index) => {
-        return String.fromCharCode(65 + index);
-    };
-
-    return seatsInsert
-}
-
 const createSeat = async (req, res) => {
     try {
-        const { screenId } = req.params
-        // const { seatNumber } = req.body;
+        const { totalRows, seatsPerRow } = req.body
 
-        const seat = seatCreate()
+      await Screen.findById(req.params.id)
+        // console.log(screen);
 
-        const screen = await Screen.findById(screenId)
-        if (!screen) {
-            return res.status(400).json({ success: false, message: "screen not found" })
+        // if (!screen) {
+        //     return res.status(400).json({ success: false, message: "screen not found" })
+        // }
+
+        const seatsInsert = [];
+        const rowLetter = (index) => {
+            return String.fromCharCode(65 + index);
+        };
+        for (let i = 0; i < totalRows; i++) {
+            const row = rowLetter(i);
+            for (let j = 0; j < seatsPerRow; j++) {
+                // seatsInsert.push({ seatNumber: `${row}${j + 1}`, isBooked: false });
+                seatsInsert.push({
+                    seatNumber: `${row}${j + 1}`,
+                    isBooked: false,
+                })
+            }
         }
+        const newSeat = new Seats({
+            seat: seatsInsert,
+            screen:req.params.id
+            
+        })        
 
-        const newSeat = new Seat({
-            seat,
-            seatNumber
-        })
+        await newSeat.save()
 
-        await newSeat.save();
-        res.status(200).json({ success: true, message: "seatCreate" })
-
-
+        res.status(200).json({ success: true, message: "seat create successfully" })
     } catch (error) {
         console.log(error);
-
         return res.status(500).json({ success: false, message: "server error" })
     }
 }

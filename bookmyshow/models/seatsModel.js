@@ -2,10 +2,23 @@ const mongoose = require("mongoose");
 
 const seatSchema = new mongoose.Schema({
 
-
-    seatNumber: {
-        type: Number
-    },
+    seat: [
+        {
+            seatNumber: {
+                type: String
+            },
+            row: {
+                type: String
+            },
+            seatnum: {
+                type: String
+            },
+            isBooked: {
+                type: Boolean,
+                default: false
+            },
+        }
+    ],
     screen: {
         type: mongoose.Schema.ObjectId,
         ref: "Screen"
@@ -13,5 +26,5 @@ const seatSchema = new mongoose.Schema({
 
 })
 
-const Seat = mongoose.model("Seat", seatSchema)
-module.exports = Seat;
+const Seats = mongoose.model("Seats", seatSchema)
+module.exports = Seats;

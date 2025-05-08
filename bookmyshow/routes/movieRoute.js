@@ -34,6 +34,6 @@ route.delete("/booking/delete/:bookingId", auth, isUser, cancelBooking)
 route.post("/screen/create", auth, isAdmin, ScreenCreate)
 route.put("/screen/update/:id", auth, isAdmin, screenUpdate)
 
-route.post("/create/seat/:screenId", auth, isAdmin, createSeat)
+route.post("/create/seat/:id", auth, isAdmin, createSeat)
 
 module.exports = route;
