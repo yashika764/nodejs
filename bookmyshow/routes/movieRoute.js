@@ -1,6 +1,6 @@
 const express = require("express");
 const { getAllRoles, createRole, createUser, loginUser, createMovie, getAllMovie, movieById, updateMovie, deleteMovie, bookTicket, updateTicket, createTheater, getAllTheater, createShow, getAllShow, createBooking, updateTheater, deleteTheater, updateBooking, cancelBooking, getAllBooking, updateShow, deleteShow, ScreenCreate, screenUpdate, createSeat } = require("../controller/movieController");
-const { auth, isAdmin, isUser } = require("../middleware/tokenMiddleware");
+const { auth, isAdmin, isUser, isAccess } = require("../middleware/tokenMiddleware");
 const upload = require("../middleware/multer");
 const route = express.Router();
 
@@ -27,9 +27,9 @@ route.put("/show/update/:id", auth, isAdmin, updateShow)
 route.delete("/show/delete/:id", auth, isAdmin, deleteShow)
 
 route.get("/booking/get/all", auth, isAdmin, getAllBooking)
-route.post("/create/booking", auth, isUser, createBooking)
-route.put("/booking/update/:bookingId", auth, isUser, updateBooking)
-route.delete("/booking/delete/:bookingId", auth, isUser, cancelBooking)
+route.post("/create/booking/:id", auth, isAccess, createBooking)
+route.put("/booking/update/:bookingId", auth, isAccess, updateBooking)
+route.delete("/booking/delete/:bookingId", auth, isAccess, cancelBooking)
 
 route.post("/screen/create", auth, isAdmin, ScreenCreate)
 route.put("/screen/update/:id", auth, isAdmin, screenUpdate)

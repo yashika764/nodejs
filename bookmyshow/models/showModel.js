@@ -13,10 +13,6 @@ const showSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: "Screen"
     },
-    seat:{
-        type:mongoose.Schema.ObjectId,
-        ref:"Seat"
-    },
     theater: {
         type: mongoose.Schema.ObjectId,
         ref: "Theater"

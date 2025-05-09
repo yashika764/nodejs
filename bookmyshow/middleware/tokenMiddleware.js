@@ -45,4 +45,15 @@ const isUser = async (req, res, next) => {
     }
 }
 
-module.exports = { auth ,isAdmin , isUser};
+const isAccess = async (req, res, next) => {
+    const loginUser = req.user;
+    const roleFind = await Role.findById(loginUser.role)
+    if (roleFind.name === "admin" || roleFind.name === "user") {
+        next();
+    }
+    else {
+        return res.status(404).json({ success: false, message: "you are not admin or user " })
+    }
+}
+
+module.exports = { auth, isAdmin, isUser, isAccess };

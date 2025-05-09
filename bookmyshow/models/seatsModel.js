@@ -7,12 +7,7 @@ const seatSchema = new mongoose.Schema({
             seatNumber: {
                 type: String
             },
-            row: {
-                type: String
-            },
-            seatnum: {
-                type: String
-            },
+    
             isBooked: {
                 type: Boolean,
                 default: false
@@ -23,7 +18,6 @@ const seatSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: "Screen"
     }
-
 })
 
 const Seats = mongoose.model("Seats", seatSchema)

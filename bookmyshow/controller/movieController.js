@@ -410,9 +410,6 @@ const createShow = async (req, res) => {
         if (!showTime || !price) {
             return res.status(400).json({ success: false, message: "all fields are required" })
         }
-
-        // const seats = seatGenerate()
-
         const movie = await Movie.findById(movieId)
         if (!movie) {
             return res.status(400).json({ success: false, message: "movie not found" })
@@ -423,16 +420,7 @@ const createShow = async (req, res) => {
             return res.status(400).json({ success: false, message: "theater not found" })
 
         }
-        // const seat = await Seats.findById(seatId)
-        // if (!seat) {
-        //     return res.status(400).json({ success: false, message: "seat not found" })
-        // }
-
-        const screen = await Screen.findById(screenId);
-        // if (!screen) {
-        //     return res.status(400).json({ success: false, message: "screen not found" })
-
-        // }
+        await Screen.findById(screenId);
 
         const newShow = new Show({
             showTime,
@@ -441,13 +429,10 @@ const createShow = async (req, res) => {
             theater: theaterId,
             screen: screenId
         })
-        // console.log(newShow);
-
         await newShow.save();
         return res.status(201).json({ success: true, message: "show created successfully" })
     } catch (error) {
         console.log(error);
-
         return res.status(500).json({ success: false, message: "server error" })
 
     }
@@ -516,7 +501,7 @@ const getAllShow = async (req, res) => {
         res.status(200).json({ success: true, totalShows: total, show })
     } catch (error) {
         console.log(error);
-        
+
         res.status(500).json({ success: false, message: "server error" })
     }
 }
@@ -538,45 +523,48 @@ const createBooking = async (req, res) => {
             res.status(400).json({ success: false, message: "user not found" })
 
         }
-        // console.log(userId);
+        
+        const seats = await Seats.findById(req.params.id)
+        if (!seats) {
+            res.status(400).json({ success: false, message: "seat not found" })
+
+        }
         const userEmail = user.email
-        console.log(userEmail);
+        // console.log(userEmail);
 
-
-        const oldBookedSeats = selectSeats.filter(seatNumber =>
-            show.seats.find(s => s.seatNumber === seatNumber && s.isBooked)
+        const oldBookedSeat = selectSeats.filter(seatNumber =>
+            seats.seat.find(s => s.seatNumber === seatNumber && s.isBooked)
         )
 
-        if (oldBookedSeats.length > 0) {
-            return res.status(400).json({ success: false, message: `seats already book ${oldBookedSeats}` })
+        if (oldBookedSeat.length > 0) {
+            return res.status(400).json({ success: false, message: `seats already book ${oldBookedSeat}` })
         }
-
-        // console.log(oldBookedSeat);
 
         const newBooking = new Booking({
             seatsBooked: selectSeats,
             numberOfSeats: selectSeats.length,
             totalPrice: show.price * selectSeats.length,
             show: showId,
-            user: userId
+            user: userId,
         })
 
-        // console.log(newBooking);
+        console.log(newBooking);
+
         await newBooking.save();
 
         selectSeats.forEach(seatNumber => {
-            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            const seat = seats.seat.find(s => s.seatNumber === seatNumber)
             if (seat) {
-                seat.isBooked = true
+                seat.isBooked = true;
             }
         })
-        await show.save();
+
+        await seats.save();
         await sendMail(userEmail, `your seat has been confirmed ${selectSeats} `)
-        res.status(201).json({ success: true, message: "your email sent to confirmation" })
+        res.status(201).json({ success: true, message: "your email sent to confirmation", bookingId: newBooking._id, bookedSeats: selectSeats })
 
     } catch (error) {
         console.log(error);
-
         res.status(500).json({ success: false, message: "server error" })
     }
 
@@ -588,42 +576,48 @@ const updateBooking = async (req, res) => {
         const { bookingId } = req.params
         console.log(bookingId);
 
-        const { selectSeats } = req.body;
+        const { selectSeats, seatId } = req.body;
 
         const booking = await Booking.findById(bookingId).populate("show")
+        const show = booking.show
         if (!booking) {
             return res.status(400).json({ success: false, message: "booking not found" })
         }
-        const show = booking.show
 
-        const oldBookedSeats = selectSeats.filter(seatNumber =>
-            show.seats.find(s => s.seatNumber === seatNumber && s.isBooked)
+        const seats = await Seats.findOne({ seatId });
+        if (!seats) {
+            return res.status(400).json({ success: false, message: "Seat data not found" });
+        }
+
+        const oldBookedSeat = selectSeats.filter(seatNumber =>
+            seats.seat.find(s => s.seatNumber === seatNumber && s.isBooked)
         )
 
-        if (oldBookedSeats.length > 0) {
-            return res.status(400).json({ success: false, message: `seat ${oldBookedSeats} already booked` })
+        if (oldBookedSeat.length > 0) {
+            return res.status(400).json({ success: false, message: `seat ${oldBookedSeat} already booked` })
         }
 
         booking.seatsBooked.forEach(seatNumber => {
-            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            const seat = seats.seat.find(s => s.seatNumber === seatNumber)
             if (seat) {
                 seat.isBooked = false;
             }
         })
 
         selectSeats.forEach(seatNumber => {
-            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            const seat = seats.seat.find(s => s.seatNumber === seatNumber)
             if (seat) {
                 seat.isBooked = true;
             }
         })
+
 
         booking.seatsBooked = selectSeats,
             booking.numberOfSeats = selectSeats.length,
             booking.totalPrice = show.price * selectSeats.length
 
         await booking.save()
-        await show.save();
+        await seats.save();
 
         res.status(200).json({ success: true, message: "seats updated successfully" })
 
@@ -638,6 +632,7 @@ const updateBooking = async (req, res) => {
 const cancelBooking = async (req, res) => {
     try {
         const { bookingId } = req.params
+        const seatId = req.body
 
         const booking = await Booking.findById(bookingId).populate("show")
         if (!booking) {
@@ -645,20 +640,26 @@ const cancelBooking = async (req, res) => {
 
         }
         const show = booking.show
+        const seats = await Seats.findOne({ seatId });
+        if (!seats) {
+            return res.status(400).json({ success: false, message: "Seat data not found" });
+        }
+
 
         booking.seatsBooked.forEach(seatNumber => {
-            const seat = show.seats.find(s => s.seatNumber === seatNumber)
+            const seat = seats.seat.find(s => s.seatNumber === seatNumber)
             if (seat) {
                 seat.isBooked = false;
             }
         })
 
-        await show.save();
+        await seats.save();
         await Booking.findByIdAndDelete(bookingId)
 
         res.status(200).json({ success: true, message: "delete successfully" })
 
     } catch (error) {
+        console.log(error);
         res.status(500).json({ success: false, message: "server error " })
     }
 }
@@ -695,6 +696,8 @@ const getAllBooking = async (req, res) => {
         res.status(200).json({ success: true, totalBooking: total, booking })
 
     } catch (error) {
+        console.log(error);
+        
         res.status(500).json({ success: false, message: "server error" })
     }
 }
@@ -757,12 +760,6 @@ const createSeat = async (req, res) => {
         const { totalRows, seatsPerRow } = req.body
 
         await Screen.findById(req.params.id)
-        // console.log(screen);
-
-        // if (!screen) {
-        //     return res.status(400).json({ success: false, message: "screen not found" })
-        // }
-
         const seatsInsert = [];
         const rowLetter = (index) => {
             return String.fromCharCode(65 + index);
