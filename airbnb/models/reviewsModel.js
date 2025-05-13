@@ -9,17 +9,21 @@ const reviewSchema = new mongoose.Schema({
     },
     comments: {
         type: String,
-    },
-    user: {
-        type: mongoose.Schema.ObjectId,
-        ref: "User"
+        required: true
     },
     place: {
         type: mongoose.Schema.ObjectId,
         ref: "Place"
+    },
+    createdBy: {
+        type: mongoose.Schema.ObjectId,
+        ref: "User"
+    },
+    user: {
+        type: mongoose.Schema.ObjectId,
+        ref: "User"
     }
-
-},{timestamps:true})
+}, { timestamps: true })
 
 const Review = mongoose.model("Review", reviewSchema)
 module.exports = Review

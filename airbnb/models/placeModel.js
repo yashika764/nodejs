@@ -15,20 +15,43 @@ const placeSchema = new mongoose.Schema({
             required: true,
         },
     },
-    location: {
+    city: {
+        type: String
+    },
+    state: {
+        type: String
+    },
+    country: {
         type: String,
         required: true
+    },
+    maxGuest: {
+        type: Number
     },
     pricePerNight: {
         type: Number,
         required: true
     },
-    guestLimit: {
-        type: String
+    bedRooms: {
+        type: Number
     },
-    user: {
+    beds: {
+        type: Number
+    },
+    amenities: [{
+        type: String
+    }],
+    category: {
+        type: mongoose.Schema.ObjectId,
+        ref: "Category"
+    },
+    createdBy: {
         type: mongoose.Schema.ObjectId,
         ref: "User"
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true })
 

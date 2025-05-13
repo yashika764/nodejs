@@ -10,7 +10,7 @@ const bookingSchema = new mongoose.Schema({
         }
     },
     totalGuests: {
-        type: String
+        type: Number
     },
     checkIn: {
         type: Date
@@ -24,14 +24,22 @@ const bookingSchema = new mongoose.Schema({
     totalPrice: {
         type: Number
     },
-    user: {
+    createdBy: {
         type: mongoose.Schema.ObjectId,
         ref: "User"
     },
-    place: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Place"
+    place:{
+        type:mongoose.Schema.ObjectId,
+        ref:"Place"
     },
+    isPayment:{
+        type:Boolean,
+        default:false
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
+    }
 }, { timestamps: true })
 
 const Booking = mongoose.model("Booking", bookingSchema)
